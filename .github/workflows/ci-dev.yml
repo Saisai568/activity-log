@@ -31,23 +31,19 @@ jobs:
           path: build.zip
 
   deploy-dev:
-    name: 🚀 Deploy to Dev
     needs: build
     runs-on: ubuntu-latest
     environment: dev
     steps:
-      - name: 下載建構結果
+      - name: Download Artifact
         uses: actions/download-artifact@v4
         with:
           name: build-artifact
 
-      - name: 安裝 GitHub CLI
-        run: sudo apt install gh -y
-
-      - name: 建立 Dev Release
+      - name: Release Dev Build
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ vars.BUILD_TAG }}
+          NOTE: ${{ vars.RELEASE_NOTE }}
         run: |
-          TAG="v1.0.0-dev-$(date +'%Y%m%d%H%M%S')"
-          NOTE="Dev environment release generated automatically."
           gh release create "$TAG" build.zip --notes "$NOTE"
