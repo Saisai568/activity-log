@@ -1,0 +1,74 @@
+name: CI/CD Deployment Pipeline
+
+on:
+  workflow_dispatch:  # 手動觸發（建議這樣做，方便測試）
+
+jobs:
+  build:
+    name: 🏗️ Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies & build
+        run: |
+          npm install
+          npm run build
+          zip -r build.zip .
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifact
+          path: build.zip
+
+  deploy-staging:
+    name: 🧪 Deploy to Staging
+    needs: build
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifact
+
+      - name: Install GitHub CLI
+        run: sudo apt install gh -y
+
+      - name: Create Staging Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ vars.BUILD_TAG }}
+          NOTE: ${{ vars.RELEASE_NOTE }}
+        run: |
+          gh release create "$TAG" build.zip --notes "$NOTE"
+
+  deploy-production:
+    name: 🚀 Deploy to Production
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    environment: production   # ✅ 需審核才會執行
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifact
+
+      - name: Install GitHub CLI
+        run: sudo apt install gh -y
+
+      - name: Create Production Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ vars.BUILD_TAG }}
+          NOTE: ${{ vars.RELEASE_NOTE }}
+        run: |
+          gh release create "$TAG" build.zip --notes "$NOTE"
