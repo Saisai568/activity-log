@@ -1,40 +1,47 @@
 name: CI Dev Deployment
+
 on:
   push:
     branches: [ master ]
 
 jobs:
   build:
+    name: 📦 Build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build
+      - name: 安裝依賴與建構
         run: |
           npm install
           npm run build
           zip -r build.zip .
-      - name: Upload Artifact
+
+      - name: 上傳建構結果
         uses: actions/upload-artifact@v4
         with:
           name: build-artifact
           path: build.zip
 
   deploy-dev:
+    name: 🚀 Deploy to Dev
     needs: build
     runs-on: ubuntu-latest
     environment: dev
     steps:
-      - name: Download Artifact
+      - name: 下載建構結果
         uses: actions/download-artifact@v4
         with:
           name: build-artifact
 
-      - name: Release Dev Build
+      - name: 安裝 GitHub CLI
+        run: sudo apt install gh -y
+
+      - name: 建立 Dev Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ vars.BUILD_TAG }}
-          NOTE: ${{ vars.RELEASE_NOTE }}
         run: |
+          TAG="v1.0.0-dev-$(date +'%Y%m%d%H%M%S')"
+          NOTE="Dev environment release generated automatically."
           gh release create "$TAG" build.zip --notes "$NOTE"
