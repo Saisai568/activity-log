@@ -1,0 +1,96 @@
+name: CI Dev Deployment
+
+# 只在 push 到 main 時觸發（可改成你要的分支）
+on:
+  push:
+    branches: [ main ]
+
+# 需要 write 權限以便建立 release / 上傳資產
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build and Package
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare environment (show node/python if present)
+        run: |
+          echo "Repository contents:"
+          ls -la
+
+      - name: Build (detect Node / Python or just zip)
+        run: |
+          # 若有 package.json，嘗試用 npm 建置
+          if [ -f package.json ]; then
+            echo "Detected Node project (package.json). Installing & building..."
+            npm ci
+            npm run build --if-present
+          # 若有 setup.py，嘗試用 Python 建置
+          elif [ -f setup.py ]; then
+            echo "Detected Python project (setup.py). Installing & building..."
+            python -m pip install --upgrade pip
+            pip install -r requirements.txt || true
+            python setup.py sdist bdist_wheel || true
+          else
+            echo "No common build file detected — will just zip the repo as-is."
+          fi
+
+          # 打包為 build.zip（把整個 repo 打包成一個 artifact）
+          zip -r build.zip . -x .git\* node_modules/\* __pycache__/\* || true
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifact
+          path: build.zip
+
+  deploy-dev:
+    name: Deploy to Dev (create Release)
+    needs: build
+    runs-on: ubuntu-latest
+
+    # 指定使用在 Repo Settings 裡的 environment（必須先建立 dev 環境）
+    environment: dev
+
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifact
+          path: .
+
+      # Create release (使用官方 action 建立 release)
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.BUILD_TAG }}
+          release_name: ${{ env.BUILD_TAG }}
+          body: ${{ env.RELEASE_NOTE }}
+          draft: false
+          prerelease: false
+
+      # Upload the build.zip to the release created above
+      - name: Upload release asset (build.zip)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./build.zip
+          asset_name: build.zip
+          asset_content_type: application/zip
+
+      - name: Confirm release info (log)
+        run: |
+          echo "Release tag used: $BUILD_TAG"
+          echo "Release note: $RELEASE_NOTE"
+          echo "Release created by action step outputs:"
+          jq -r .name <<< '${{ steps.create_release.outputs }}' || true
