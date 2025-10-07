@@ -102,11 +102,15 @@ jobs:
       - name: Install GitHub CLI
         run: sudo apt install gh -y
 
-      - name: Create Production Release
+      - name: Create production release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="v${VERSION}"
           NOTE="🚀 Production release for version ${VERSION}"
           echo "Creating release ${TAG}"
-          gh release create "$TAG" "build-${VERSION}.zip" --notes "$NOTE"
+          gh release create "$TAG" "build-${VERSION}.zip" --notes "$NOTE" || {
+            echo "⚠️ Release failed, rollbacking..."
+            gh release delete "$TAG" -y
+            exit 1
+          }
