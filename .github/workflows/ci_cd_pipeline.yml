@@ -7,6 +7,8 @@ jobs:
   build:
     name: 🏗️ Build
     runs-on: ubuntu-latest
+    outputs:
+      VERSION: ${{ steps.version.outputs.VERSION }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -17,23 +19,37 @@ jobs:
       - name: 設定 Bun 路徑
         run: echo "$HOME/.bun/bin" >> $GITHUB_PATH
 
+      - name: 取得版本號
+        id: version
+        run: |
+          if [ -f "package.json" ]; then
+            VERSION=$(node -p "require('./package.json').version")
+          else
+            VERSION=$(git describe --tags --always 2>/dev/null || echo "v0.0.0-$(git rev-parse --short HEAD)")
+          fi
+          echo "✅ Version detected: $VERSION"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
       - name: Install dependencies & build
         run: |
           npm install
           npm run build
-          zip -r build.zip .
+          zip -r build-${{ env.VERSION }}.zip .
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: build-artifact
-          path: build.zip
+          path: build-${{ env.VERSION }}.zip
 
   deploy-staging:
     name: 🧪 Deploy to Staging
     needs: build
     runs-on: ubuntu-latest
     environment: staging
+    env:
+      VERSION: ${{ needs.build.outputs.VERSION }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -55,16 +71,19 @@ jobs:
       - name: Create Staging Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ vars.BUILD_TAG }}
-          NOTE: ${{ vars.RELEASE_NOTE }}
         run: |
-          gh release create "$TAG" build.zip --notes "$NOTE"
+          TAG="staging-${VERSION}"
+          NOTE="🧪 Staging build for version ${VERSION}"
+          echo "Creating release ${TAG}"
+          gh release create "$TAG" "build-${VERSION}.zip" --notes "$NOTE"
 
   deploy-production:
     name: 🚀 Deploy to Production
     needs: deploy-staging
     runs-on: ubuntu-latest
     environment: production   # ✅ 需審核才會執行
+    env:
+      VERSION: ${{ needs.build.outputs.VERSION }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -86,7 +105,8 @@ jobs:
       - name: Create Production Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ vars.BUILD_TAG }}
-          NOTE: ${{ vars.RELEASE_NOTE }}
         run: |
-          gh release create "$TAG" build.zip --notes "$NOTE"
+          TAG="v${VERSION}"
+          NOTE="🚀 Production release for version ${VERSION}"
+          echo "Creating release ${TAG}"
+          gh release create "$TAG" "build-${VERSION}.zip" --notes "$NOTE"
