@@ -5,7 +5,7 @@
 		"axios": "^1.11.0"
 	},
 	"scripts": {
-		"build": "bun i && ncc build src/index.js --license licenses.txt"
+		"build": "bun i && ncc build src/index.js --license licenses.txt",
 		"test": "echo \"Running automated tests...\" && exit 0"
 	},
 	"devDependencies": {
