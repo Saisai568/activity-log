@@ -34,10 +34,12 @@ jobs:
 
       - name: 設定 Bun 路徑
         run: echo "$HOME/.bun/bin" >> $GITHUB_PATH
+        
       - uses: actions/checkout@v4     # ✅ 新增這行！
       - uses: actions/download-artifact@v4
         with:
           name: build-artifact
+          path: dist/
       - name: Run Automated Tests
         run: |
           echo "Running automated tests..."
@@ -55,9 +57,15 @@ jobs:
       - name: 設定 Bun 路徑
         run: echo "$HOME/.bun/bin" >> $GITHUB_PATH
         
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           name: build-artifact
+          path: dist/
+      - name: Check dist files
+        run: |
+          echo "Checking files in dist/"
+          ls -al dist/
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
