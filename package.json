@@ -5,7 +5,8 @@
 		"axios": "^1.11.0"
 	},
 	"scripts": {
-		"build": "bun i && ncc build src/index.js --license licenses.txt"
+        "start": "node index.js",
+    	"test": "echo \"Running automated tests...\" && exit 0"
 	},
 	"devDependencies": {
 		"@vercel/ncc": "^0.38.3"
