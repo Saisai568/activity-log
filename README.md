@@ -10,6 +10,7 @@
 
 A GitHub Action that automatically updates your README file with the latest activity from your GitHub account. Customize the displayed events, set a limit on the number of events, and ignore specific event types. Ideal for keeping your personal README file current with recent contributions and changes.
 
+[![CI/CD Deployment Pipeline](https://github.com/Saisai568/activity-log/actions/workflows/ci_cd_pipeline.yml/badge.svg)](https://github.com/Saisai568/activity-log/actions/workflows/ci_cd_pipeline.yml)
 ## 🛠️Features
 
 - Customizable Event Limits
@@ -166,3 +167,4 @@ You can find an example [here](https://github.com/TheDanniCraft/activity-log/blo
 ## ✍️Authors
 
 - [@thedannicraft](https://www.github.com/thedannicraft)
+
