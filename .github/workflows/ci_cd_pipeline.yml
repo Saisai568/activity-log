@@ -65,7 +65,7 @@ jobs:
         run: |
           echo "Running Unit Tests in $TEST_ENV environment..."
           npm install
-          npm test:unit || (echo "❌ Unit tests failed" && exit 1)
+          npm run test:unit || (echo "❌ Unit tests failed" && exit 1)
 
   # ---------- INTEGRATION TEST ----------
   integration-test:
@@ -84,7 +84,7 @@ jobs:
         run: |
           echo "Running Integration Tests in $TEST_ENV environment..."
           npm install
-          npm test:integration || (echo "❌ Unit tests failed" && exit 1)
+          npm run test:integration || (echo "❌ Unit tests failed" && exit 1)
 
   # ---------- DEV RELEASE ----------
   release:
