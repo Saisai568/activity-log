@@ -64,6 +64,8 @@ jobs:
           npm test || (echo "❌ Tests failed" && exit 1)
   release:
     runs-on: ubuntu-latest
+    outputs:
+      VERSION: ${{ steps.version.outputs.VERSION }}
     needs: test
     environment: dev
     steps:
@@ -83,6 +85,23 @@ jobs:
         run: |
           echo "✅ Tests passed. Releasing new dev build..."
           gh release create "dev-$(date +%s)" dist/* --notes "Automated release after successful tests"
+
+      - name: Get version from package.json or git
+        id: version
+        run: |
+          if [ -f "package.json" ] && node -e "v=require('./package.json').version; if(!v) process.exit(1)" 2>/dev/null; then
+            VERSION=$(node -p "require('./package.json').version")
+          else
+            GIT_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+            if [ -n "$GIT_TAG" ]; then
+              VERSION="${GIT_TAG#v}"
+            else
+              VERSION="0.0.0-$(git rev-parse --short HEAD)"
+            fi
+          fi
+          echo "✅ Version detected: $VERSION"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
   deploy-staging:
     name: 🧪 Deploy to Staging
     needs: release
