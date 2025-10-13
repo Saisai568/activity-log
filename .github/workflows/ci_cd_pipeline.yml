@@ -138,6 +138,8 @@ jobs:
     env:
       VERSION: ${{ needs.build.outputs.VERSION }}
       TEST_ENV: staging
+    permissions:
+      contents: write 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -173,6 +175,8 @@ jobs:
     env:
       VERSION: ${{ needs.build.outputs.VERSION }}
       TEST_ENV: production
+    permissions:
+      contents: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
