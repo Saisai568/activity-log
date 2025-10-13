@@ -110,6 +110,15 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: build-artifact
+      - name: Unzip Artifact
+        # artifact action 下載的 build-artifact 是一個 zip 檔案
+        # 但 actions/download-artifact 的行為有時會直接解壓縮
+        # 為了確保 gh release create 能夠找到 build-${VERSION}.zip 
+        # 我們需要手動處理一下，假設 download-artifact 下載了 zip 檔案
+        run: |
+          echo "Listing current directory contents after download:"
+          ls -al
+          
       - name: Install GitHub CLI
         run: sudo apt install gh -y
       - name: Create Staging Release
