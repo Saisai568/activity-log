@@ -1,4 +1,4 @@
-name: E-Level CI/CD Deployment Pipeline
+name: CI/CD Deployment Pipeline
 
 on:
   workflow_dispatch:  # 手動觸發（方便測試）
