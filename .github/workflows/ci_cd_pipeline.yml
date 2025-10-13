@@ -72,7 +72,7 @@ jobs:
         run: |
           npm install
           # ✅ 執行 Jest 並產生覆蓋率報告
-          npm test:unit -- --coverage || (echo "❌ Unit tests failed" && exit 1)
+          npm run test:unit -- --coverage || (echo "❌ Unit tests failed" && exit 1)
           
       # ✅ 新增：將覆蓋率報告作為 Artifact 上傳
       - name: Upload Test Coverage Report
