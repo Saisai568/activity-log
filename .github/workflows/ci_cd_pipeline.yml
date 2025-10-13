@@ -1,8 +1,26 @@
+Skip to content
+Navigation Menu
+Saisai568
+activity-log
+
+Type / to search
+Code
+Pull requests
+Actions
+Projects
+Security
+Insights
+Settings
+CI/CD Deployment Pipeline
+CI/CD Deployment Pipeline #9
+Jobs
+Run details
+Workflow file for this run
+.github/workflows/ci_cd_pipeline.yml at 1435131
 name: CI/CD Deployment Pipeline
 
 on:
-  workflow_dispatch:
-    # 手動觸發（建議這樣做，方便測試）
+  workflow_dispatch:  # 手動觸發（建議這樣做，方便測試）
 
 jobs:
   build:
@@ -13,10 +31,13 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
       - name: 安裝 Bun
         run: curl -fsSL https://bun.sh/install | bash
+
       - name: 設定 Bun 路徑
         run: echo "$HOME/.bun/bin" >> $GITHUB_PATH
+
       - name: Get version from package.json or git
         id: version
         run: |
@@ -44,12 +65,10 @@ jobs:
           name: build-artifact
           path: build-${{ env.VERSION }}.zip
 
-
-
   test:
     runs-on: ubuntu-latest
     needs: build
-    steps:
+    steps:        
       - uses: actions/checkout@v4     # ✅ 新增這行！
       - uses: actions/download-artifact@v4
         with:
@@ -60,14 +79,12 @@ jobs:
           echo "Running automated tests..."
           npm install                 # ✅ 重新安裝依賴
           npm test || (echo "❌ Tests failed" && exit 1)
-
-
-
   release:
     runs-on: ubuntu-latest
     needs: test
     environment: dev
     steps:
+    
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
@@ -82,63 +99,40 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "✅ Tests passed. Releasing new dev build..."
-          # 注意：這裡使用了一個新的 timestamp 標籤。
-          # 由於 staging 會依賴這個 release，您可以考慮是否要在 release 步驟使用與 build 相同的版本號，
-          # 或是將 'release' job 視為內部標記，然後讓 'deploy-staging' 成為第一個外部可見的 'staging-vX.X.X' 標籤。
-          # 這裡維持您原有的 'dev' 環境釋出邏輯。
           gh release create "dev-$(date +%s)" dist/* --notes "Automated release after successful tests"
-
-
-
   deploy-staging:
     name: 🧪 Deploy to Staging
-    # 💥 主要變更：從 'build' 改為依賴 'release'
-    needs: release
+    needs: [build, release]
     runs-on: ubuntu-latest
     environment: staging
     env:
-      # 雖然 job 依賴 'release'，但版本號仍來自 'build'
       VERSION: ${{ needs.build.outputs.VERSION }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
       - name: 安裝 Bun
         run: curl -fsSL https://bun.sh/install | bash
+
       - name: 設定 Bun 路徑
         run: echo "$HOME/.bun/bin" >> $GITHUB_PATH
+
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
           name: build-artifact
-      - name: Unzip Artifact
-        # artifact action 下載的 build-artifact 是一個 zip 檔案
-        # 但 actions/download-artifact 的行為有時會直接解壓縮
-        # 為了確保 gh release create 能夠找到 build-${VERSION}.zip 
-        # 我們需要手動處理一下，假設 download-artifact 下載了 zip 檔案
-        run: |
-          echo "Listing current directory contents after download:"
-          ls -al
-          
+
       - name: Install GitHub CLI
         run: sudo apt install gh -y
+
       - name: Create Staging Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # 這裡建議使用與 build 相同的版本號，並加上 'staging-' 前綴
           TAG="staging-${VERSION}"
           NOTE="🧪 Staging build for version ${VERSION}"
           echo "Creating release ${TAG}"
-          # 確保檔案存在
-          if [ ! -f "build-${VERSION}.zip" ]; then
-            echo "❌ Build file not found: build-${VERSION}.zip"
-            exit 1
-          fi
-          # 使用 gh release create 來標記一個 'staging' 版本的 release
-          gh release create "$TAG" "build-${VERSION}.zip" --notes "$NOTE" || {
-            echo "⚠️ Staging release failed. Please check the logs."
-            exit 1
-          }
+          gh release create "$TAG" "build-${VERSION}.zip" --notes "$NOTE"
       - name: 💬 Comment on PR/Commit
         if: success()
         uses: actions/github-script@v7
@@ -164,13 +158,9 @@ jobs:
                 body
               });
             }
-
-
-
   deploy-production:
     name: 🚀 Deploy to Production
-    # 💥 主要變更：從依賴 [build, deploy-staging] 改為只依賴 'deploy-staging'
-    needs: deploy-staging
+    needs: [build, deploy-staging]
     runs-on: ubuntu-latest
     environment: production
     env:
@@ -178,16 +168,21 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
       - name: 安裝 Bun
         run: curl -fsSL https://bun.sh/install | bash
+
       - name: 設定 Bun 路徑
         run: echo "$HOME/.bun/bin" >> $GITHUB_PATH
+
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
           name: build-artifact
+
       - name: Install GitHub CLI
         run: sudo apt install gh -y
+
       - name: Create production release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
