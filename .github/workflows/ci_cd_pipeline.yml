@@ -61,11 +61,27 @@ jobs:
         with:
           name: build-artifact
           path: dist/
-      - name: Run Unit Tests
+
+      - name: 安裝 Bun
+        run: curl -fsSL https://bun.sh/install | bash
+
+      - name: 設定 Bun 路徑
+        run: echo "$HOME/.bun/bin" >> $GITHUB_PATH
+
+      - name: Run Unit Tests and Generate Coverage Report
         run: |
-          echo "Running Unit Tests in $TEST_ENV environment..."
           npm install
-          npm run test:unit || (echo "❌ Unit tests failed" && exit 1)
+          # ✅ 執行 Jest 並產生覆蓋率報告
+          npm test:unit -- --coverage || (echo "❌ Unit tests failed" && exit 1)
+          
+      # ✅ 新增：將覆蓋率報告作為 Artifact 上傳
+      - name: Upload Test Coverage Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-coverage
+          # 假設 Jest 預設輸出到 coverage/ 資料夾
+          path: coverage/
+          retention-days: 7
 
   # ---------- INTEGRATION TEST ----------
   integration-test:
