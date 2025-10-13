@@ -6,9 +6,12 @@
 	},
 	"scripts": {
 		"build": "bun i && ncc build src/index.js --license licenses.txt",
-		"test": "echo \"Running automated tests...\" && exit 0"
+		"test": "jest",
+		"test:unit": "jest --testPathPattern=unit",
+		"test:integration": "jest --testPathPattern=integration"
 	},
 	"devDependencies": {
-		"@vercel/ncc": "^0.38.3"
+		"@vercel/ncc": "^0.38.3",
+		"jest": "^29.7.0" // ✅ 新增 Jest 依賴
 	}
 }
