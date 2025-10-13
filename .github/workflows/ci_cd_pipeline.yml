@@ -85,7 +85,7 @@ jobs:
           gh release create "dev-$(date +%s)" dist/* --notes "Automated release after successful tests"
   deploy-staging:
     name: 🧪 Deploy to Staging
-    needs: build
+    needs: release
     runs-on: ubuntu-latest
     environment: staging
     env:
