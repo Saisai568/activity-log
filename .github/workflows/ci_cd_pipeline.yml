@@ -44,7 +44,7 @@ jobs:
           name: build-artifact
           path: build-${{ env.VERSION }}.zip
 
----
+
 
   test:
     runs-on: ubuntu-latest
@@ -61,7 +61,7 @@ jobs:
           npm install                 # ✅ 重新安裝依賴
           npm test || (echo "❌ Tests failed" && exit 1)
 
----
+
 
   release:
     runs-on: ubuntu-latest
@@ -88,7 +88,7 @@ jobs:
           # 這裡維持您原有的 'dev' 環境釋出邏輯。
           gh release create "dev-$(date +%s)" dist/* --notes "Automated release after successful tests"
 
----
+
 
   deploy-staging:
     name: 🧪 Deploy to Staging
@@ -156,7 +156,7 @@ jobs:
               });
             }
 
----
+
 
   deploy-production:
     name: 🚀 Deploy to Production
