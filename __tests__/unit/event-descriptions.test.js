@@ -1,33 +1,70 @@
-// 假設您在 src/utils/eventDescriptions.js 中有一個 describeEvent 函數
+// ✅ 修正匯入方式：匯入整個物件
+const eventDescriptions = require('../../src/utils/eventDescriptions');
 
-const { describeEvent } = require('../../src/utils/eventDescriptions');
-
-describe('Unit Test: describeEvent', () => {
-    // 測試 PushEvent 
-    test('should correctly describe a PushEvent', () => {
-        const event = {
-            type: 'PushEvent',
+describe('Unit Test: eventDescriptions (Basic Events)', () => {
+    // 測試 PushEvent 公開倉庫
+    test('should correctly describe a public PushEvent', () => {
+        // PushEvent 函式需要 { repo, isPrivate, payload } 作為參數
+        const input = {
             repo: { name: 'user/repo-name' },
-            payload: { commits: [{ message: 'feat: new feature' }], ref: 'refs/heads/main' }
+            isPrivate: false,
+            payload: { 
+                head: '9884864a8ddba730c3f4f1c535b554c0b62a6fcc' 
+            }
         };
-        const result = describeEvent(event);
-        // 預期的輸出會是 '📝 Committed to [user/repo-name](commit link)' 
-        // 這裡我們只檢查輸出是否為字串且包含關鍵字
-        expect(result).toContain('Committed to');
-        expect(result).toContain('user/repo-name');
+        
+        // ✅ 直接呼叫 eventDescriptions 物件中的 PushEvent 函式
+        const result = eventDescriptions['PushEvent'](input);
+        
+        expect(result).toContain('📝 Committed to');
+        expect(result).toContain('[user/repo-name](');
+        expect(result).toContain('/commit/9884864a8ddba730c3f4f1c535b554c0b62a6fcc)');
     });
 
-    // 測試 CreateEvent
-    test('should correctly describe a CreateEvent (repository)', () => {
-        const event = {
-            type: 'CreateEvent',
+    // 測試 CreateEvent (repository) 公開倉庫
+    test('should correctly describe a public CreateEvent (repository)', () => {
+        const input = {
             repo: { name: 'user/new-repo' },
+            isPrivate: false,
             payload: { ref_type: 'repository' }
         };
-        const result = describeEvent(event);
-        expect(result).toContain('Created a new repository');
-        expect(result).toContain('user/new-repo');
+        
+        // ✅ 直接呼叫 eventDescriptions 物件中的 CreateEvent 函式
+        const result = eventDescriptions['CreateEvent'](input);
+        
+        expect(result).toContain('🎉 Created a new repository');
+        expect(result).toContain('[user/new-repo]');
     });
     
-    // ... 其他事件類型測試
+    // 測試 IssuesEvent (closed) 公開倉庫
+    test('should correctly describe a public IssuesEvent (closed)', () => {
+        const input = {
+            repo: { name: 'user/project-repo' },
+            isPrivate: false,
+            payload: {
+                action: 'closed',
+                issue: { number: 42 }
+            }
+        };
+        
+        // ✅ 呼叫 IssuesEvent 物件中巢狀的 'closed' 函式
+        const result = eventDescriptions['IssuesEvent']['closed'](input);
+        
+        expect(result).toContain('❌ Closed an issue');
+        expect(result).toContain('[#42](');
+        expect(result).toContain('[user/project-repo]');
+    });
+    
+    // 測試 PushEvent 私有倉庫 (隱藏細節)
+    test('should correctly describe a private PushEvent', () => {
+        const input = {
+            repo: { name: 'user/private-repo' },
+            isPrivate: true, // 私有
+            payload: { head: '9884864a8ddba730c3f4f1c535b554c0b62a6fcc' }
+        };
+        
+        const result = eventDescriptions['PushEvent'](input);
+        
+        expect(result).toBe('📝 Committed to a private repo');
+    });
 });
