@@ -1,22 +1,3 @@
-Skip to content
-Navigation Menu
-Saisai568
-activity-log
-
-Type / to search
-Code
-Pull requests
-Actions
-Projects
-Security
-Insights
-Settings
-CI/CD Deployment Pipeline
-CI/CD Deployment Pipeline #9
-Jobs
-Run details
-Workflow file for this run
-.github/workflows/ci_cd_pipeline.yml at 1435131
 name: CI/CD Deployment Pipeline
 
 on:
