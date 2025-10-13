@@ -2,6 +2,10 @@ name: CI/CD Deployment Pipeline
 
 on:
   workflow_dispatch:  # 手動觸發（方便測試）
+permissions:
+  contents: read # 保持現有權限
+  issues: write # ✅ 新增：允許建立和評論 Issue
+  pull-requests: write # 允許在 PR 上評論 (可選，但建議保留)
 
 jobs:
   build:
@@ -203,3 +207,68 @@ jobs:
             gh release delete "$TAG" -y || echo "⚠️ Rollback skipped (release not found)"
             exit 1
           }
+  # ---------- FAILURE HANDLING (O-level) ----------
+  test-failure-handling:
+    name: 🚨 Test Failure Actions
+    runs-on: ubuntu-latest
+    # ✅ 只有當 unit-test 或 integration-test 失敗時才執行
+    needs: [unit-test, integration-test]
+    if: ${{ always() && (needs.unit-test.result == 'failure' || needs.integration-test.result == 'failure') }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      # ✅ 自動建立新的 GitHub Issue
+      - name: Create New Failure Issue
+        uses: actions/github-script@v7
+        id: create_issue
+        env:
+          FAILURE_JOB: ${{ needs.unit-test.result == 'failure' && 'Unit Test' || needs.integration-test.result == 'failure' && 'Integration Test' }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { FAILURE_JOB, RUN_URL } = process.env;
+            const title = `🚨 [CI/CD Failure] ${FAILURE_JOB} failed in workflow run #${context.runNumber}`;
+            const body = `The **${FAILURE_JOB}** job failed in the CI/CD pipeline.\n\n`
+                       + `- **Workflow:** \`${context.workflow}\`\n`
+                       + `- **Branch:** \`${context.ref}\`\n`
+                       + `- **Check Run:** [View Workflow Run](${RUN_URL})\n\n`
+                       + `Please investigate the cause immediately.`;
+                       
+            const response = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              body,
+              labels: ['bug', 'ci-failure']
+            });
+            
+            // 儲存 Issue 號碼供下一步使用
+            core.setOutput('ISSUE_NUMBER', response.data.number);
+
+      # ✅ 整合測試結果通知 (評論到 Issue 或 PR - 這裡評論到剛建立的 Issue)
+      - name: Comment on Failure Issue
+        uses: actions/github-script@v7
+        if: success() # 確保 Issue 成功創建
+        env:
+          ISSUE_NUMBER: ${{ steps.create_issue.outputs.ISSUE_NUMBER }}
+          FAILURE_JOB: ${{ env.FAILURE_JOB }} # 延續上一步的環境變數
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { ISSUE_NUMBER, FAILURE_JOB } = process.env;
+            const jobLink = `[${FAILURE_JOB} Job](${process.env.RUN_URL}#${FAILURE_JOB.replace(/\s/g, '-')})`;
+            const commentBody = `---
+            👋 **Automated Test Notification:**
+            The **${FAILURE_JOB}** failed. This issue has been automatically created for tracking.
+            Please refer to the log in the ${jobLink} for details.
+            ---`;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: ISSUE_NUMBER,
+              body: commentBody
+            });
+            console.log(`Commented on issue #${ISSUE_NUMBER}`);
