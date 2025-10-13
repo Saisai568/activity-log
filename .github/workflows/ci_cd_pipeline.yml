@@ -112,7 +112,7 @@ jobs:
   deploy-staging:
     name: 🧪 Deploy to Staging
     runs-on: ubuntu-latest
-    needs: [unit-test, integration-test]
+    needs: [build, unit-test, integration-test]
     environment: staging
     env:
       VERSION: ${{ needs.build.outputs.VERSION }}
