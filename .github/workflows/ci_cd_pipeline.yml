@@ -13,10 +13,13 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       VERSION: ${{ steps.version.outputs.VERSION }}
+
     steps:
+      # 1. Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # 2. Install and set up Bun
       - name: 安裝並設定 Bun
         run: |
           curl -fsSL https://bun.sh/install | bash
